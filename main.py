@@ -51,27 +51,76 @@ def pickup(deck, hand):
     deck.pop(0)
     return
 
+def print_cards(card):
+    clean_card = card["color"]
+    if type(card["face"]) is float:
+        clean_card = clean_card + " " + str(int(card["face"]))
+    elif type(card["face"]) is str:
+        clean_card = clean_card + " " + card["face"]
+    
+    if card["action_1"] != "none":
+        clean_card = clean_card + " " + card["action_1"]
+    
+    return clean_card.title()
+
+class color:
+   PURPLE = '\033[95m'
+   CYAN = '\033[96m'
+   DARKCYAN = '\033[36m'
+   BLUE = '\033[94m'
+   GREEN = '\033[92m'
+   YELLOW = '\033[93m'
+   RED = '\033[91m'
+   BOLD = '\033[1m'
+   UNDERLINE = '\033[4m'
+   END = '\033[0m'
+
 def player_turn(deck, discard_pile, player_hand):
-    print("Top card", discard_pile[0])
+    if discard_pile[0]["color"] == 'red':
+        print("Top card is", color.RED + print_cards(discard_pile[0])+ color.END)
+    elif discard_pile[0]["color"] == 'green':
+        print("Top card is", color.GREEN + print_cards(discard_pile[0])+ color.END)
+    elif discard_pile[0]["color"] == 'yellow':
+            print("Top card is", color.YELLOW + print_cards(discard_pile[0])+ color.END)
+    elif discard_pile[0]["color"] == 'blue':
+            print("Top card is", color.BLUE + print_cards(discard_pile[0])+ color.END)
+    else:
+        print("Top card is", print_cards(discard_pile[0]))
+    
+    player_hand = sorted(player_hand, key=lambda a: a["ref_num"])
+
+    print()
+    print("Your hand")
+    print(color.UNDERLINE+ "#      Card" + color.END)
 
     for i in range (len(player_hand)):
-        print(i, " ", player_hand[i])
-
+        if player_hand[i]["color"] == 'red':
+            print(i, "    ", color.RED + print_cards(player_hand[i]) + color.END)
+        elif player_hand[i]["color"] == 'green':
+             print(i, "    ", color.GREEN + print_cards(player_hand[i]) + color.END)
+        elif player_hand[i]["color"] == 'yellow':
+             print(i, "    ", color.YELLOW + print_cards(player_hand[i]) + color.END)
+        elif player_hand[i]["color"] == 'blue':
+             print(i, "    ", color.BLUE + print_cards(player_hand[i]) + color.END)
+        else:
+            print(i, "    ", print_cards(player_hand[i]))
     x = True
     while x is True:
+        print()
+        print("Please Select Action")
         print("0", "Pickup")
         print("1", "Play")
-        action = int(input("What would you like to do?"))
+        action = int(input("What would you like to do? "))
         if action == 0:
             pickup(deck, player_hand)
             x = False
         elif action == 1:
-            player_card = int(input("Which card would you like to play?"))  # multiple cards not supported
+            player_card = int(input("Which card would you like to play? "))  # multiple cards not supported
 
             if player_is_valid_card(discard_pile[0], player_hand[player_card]):
                 discard_pile.insert(0, player_hand[player_card])
                 if discard_pile[0]["color"] == "wild":
-                    discard_pile[0]["color"] = input("please choose color")
+                    discard_pile[0]["color"] = input("Please choose color ")
                 player_hand.pop(player_card)
                 x = False
             else:
@@ -87,7 +136,18 @@ def computer_turn(deck, discard_pile, computer_hand, which_computer):
         pickup(deck, computer_hand)
         print("Computer %s picks up" %which_computer)
     else:
-        print("Computer %s plays" %which_computer, valid_cards[0])
+        if valid_cards[0]["color"] == 'red':
+            print("Computer %s plays" %which_computer, color.RED + print_cards(valid_cards[0]) + color.END)
+        elif valid_cards[0]["color"] == 'green':
+            print("Computer %s plays" %which_computer, color.GREEN + print_cards(valid_cards[0]) + color.END)
+        elif valid_cards[0]["color"] == 'yellow':
+            print("Computer %s plays" %which_computer, color.YELLOW + print_cards(valid_cards[0]) + color.END)
+        elif valid_cards[0]["color"] == 'blue':
+            print("Computer %s plays" %which_computer, color.BLUE + print_cards(valid_cards[0]) + color.END)
+        else:
+            print("Computer %s plays" %which_computer, print_cards(valid_cards[0]))
+        
+        
         discard_pile.insert(0, valid_cards[0])
         if discard_pile[0]["color"] == "wild":
             top_color = {"blue":0,"green":0,"yellow":0,"red":0, "wild":0}

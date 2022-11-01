@@ -75,20 +75,18 @@ class color:
    UNDERLINE = '\033[4m'
    END = '\033[0m'
 
-def player_turn(deck, discard_pile, player_hand):
+def player_turn(deck, discard_pile, player_hand, pickup_counter):
     if discard_pile[0]["color"] == 'red':
-        print("Top card is", color.RED + print_cards(discard_pile[0])+ color.END)
+        print("The top card is", color.RED + print_cards(discard_pile[0])+ color.END)
     elif discard_pile[0]["color"] == 'green':
-        print("Top card is", color.GREEN + print_cards(discard_pile[0])+ color.END)
+        print("The top card is", color.GREEN + print_cards(discard_pile[0])+ color.END)
     elif discard_pile[0]["color"] == 'yellow':
-            print("Top card is", color.YELLOW + print_cards(discard_pile[0])+ color.END)
+            print("The top card is", color.YELLOW + print_cards(discard_pile[0])+ color.END)
     elif discard_pile[0]["color"] == 'blue':
-            print("Top card is", color.BLUE + print_cards(discard_pile[0])+ color.END)
+            print("The top card is", color.BLUE + print_cards(discard_pile[0])+ color.END)
     else:
-        print("Top card is", print_cards(discard_pile[0]))
+        print("The top card is", print_cards(discard_pile[0]))
     
-    player_hand = sorted(player_hand, key=lambda a: a["ref_num"])
-
     print()
     print("Your hand")
     print(color.UNDERLINE+ "#      Card" + color.END)
@@ -108,11 +106,17 @@ def player_turn(deck, discard_pile, player_hand):
     while x is True:
         print()
         print("Please Select Action")
-        print("0", "Pickup")
-        print("1", "Play")
+        if pickup_counter == 0:
+            print("0", "Pickup")
+            print("1", "Play")
+        else:
+            print("1", "Play")
+            print("2", "End turn")
         action = int(input("What would you like to do? "))
         if action == 0:
             pickup(deck, player_hand)
+            print("You pickup a new card")
+            player_turn(deck, discard_pile, player_hand, 1)
             x = False
         elif action == 1:
             player_card = int(input("Which card would you like to play? "))  # multiple cards not supported
@@ -125,6 +129,8 @@ def player_turn(deck, discard_pile, player_hand):
                 x = False
             else:
                 print("Cannot play that card")
+        elif action == 2 and pickup_counter > 0:
+            x = False
         else:
             print("Invalid selection")
 
@@ -194,6 +200,7 @@ def play_uno():
 
     deal(deck,player_hand,computer1_hand, computer2_hand)
     discard_pile.append(deck[0])
+    
 
     winner = True
 
@@ -201,7 +208,8 @@ def play_uno():
 
     while winner:
         if(play_order[0]) == "player":
-            player_turn(deck, discard_pile, player_hand)
+            player_hand = sorted(player_hand, key=lambda a: a["ref_num"])
+            player_turn(deck, discard_pile, player_hand, 0)
             if len(player_hand) == 0:
                     print("player wins!")
                     break

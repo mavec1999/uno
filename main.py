@@ -45,6 +45,36 @@ def computer_valid_card(hand, top_card):
                 continue
         return valid_cards
 
+def computer_ranked_cards(hand):
+    
+    #tend to play most common color cards
+    top_color = {"blue":0,"green":0,"yellow":0,"red":0, "wild":0}
+    for i in range (len(hand)):
+        top_color[hand[i]["color"]] += 1
+    for i in range (len(hand)):
+        if hand[i]["color"] == "blue":
+            hand[i]["rank"] += top_color["blue"]
+        elif hand[i]["color"] == "green":
+            hand[i]["rank"] += top_color["green"]
+        elif hand[i]["color"] == "yellow":
+            hand[i]["rank"] += top_color["yellow"]
+        elif hand[i]["color"] == "red":
+            hand[i]["rank"] += top_color["red"]
+    
+    #tend to avoid playing non-pickup 2 cards
+    for i in range (len(hand)):
+        if hand[i]["face"] == 2 and hand[i]["action_1"] != "pickup":
+            hand[i]["rank"] -= 1
+    
+    #tend to favor playing 0 cards
+    for i in range (len(hand)):
+        if hand[i]["face"] == 0:
+            hand[i]["rank"] += 1
+
+    hand = sorted(hand, key=lambda a: a["rank"], reverse=True)
+    print(hand)
+    return hand
+    
 
 def pickup(deck, hand):
     hand.append(deck[0])
@@ -124,7 +154,7 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter):
             if player_is_valid_card(discard_pile[0], player_hand[player_card]):
                 discard_pile.insert(0, player_hand[player_card])
                 if discard_pile[0]["color"] == "wild":
-                    discard_pile[0]["color"] = input("Please choose color ")
+                    discard_pile[0]["color"] = input("Please choose color ").lower()
                 player_hand.pop(player_card)
                 x = False
             else:
@@ -137,6 +167,7 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter):
 def computer_turn(deck, discard_pile, computer_hand, which_computer):
     valid_cards = []
     valid_cards = computer_valid_card(computer_hand, discard_pile[0])
+    valid_cards = computer_ranked_cards(valid_cards)
 
     if len(valid_cards) == 0:
         pickup(deck, computer_hand)

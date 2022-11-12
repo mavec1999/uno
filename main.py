@@ -26,7 +26,7 @@ def player_is_valid_card(top_card, hand):
     elif top_card["face"] == hand["face"]:
         return True
     return False
-
+1
 def computer_valid_card(hand, top_card):
     valid_cards = []
     if top_card["color"] == "wild":
@@ -72,11 +72,13 @@ def computer_ranked_cards(hand):
             hand[i]["rank"] += 1
 
     hand = sorted(hand, key=lambda a: a["rank"], reverse=True)
-    print(hand)
     return hand
     
 
-def pickup(deck, hand):
+def pickup(deck, hand, discard_pile):
+    if len(deck) == 0:
+        deck = shuffle(discard_pile)
+        discard_pile = []
     hand.append(deck[0])
     deck.pop(0)
     return
@@ -144,7 +146,7 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter):
             print("2", "End turn")
         action = int(input("What would you like to do? "))
         if action == 0:
-            pickup(deck, player_hand)
+            pickup(deck, player_hand, discard_pile)
             print("You pickup a new card")
             player_turn(deck, discard_pile, player_hand, 1)
             x = False
@@ -170,7 +172,7 @@ def computer_turn(deck, discard_pile, computer_hand, which_computer):
     valid_cards = computer_ranked_cards(valid_cards)
 
     if len(valid_cards) == 0:
-        pickup(deck, computer_hand)
+        pickup(deck, computer_hand, discard_pile)
         print("Computer %s picks up" %which_computer)
     else:
         if valid_cards[0]["color"] == 'red':
@@ -231,7 +233,7 @@ def play_uno():
 
     deal(deck,player_hand,computer1_hand, computer2_hand)
     discard_pile.append(deck[0])
-    
+    deck.pop(0)
 
     winner = True
 
@@ -262,15 +264,15 @@ def play_uno():
             if play_order[1] == "player":
                 print(play_order[0] + " makes you pickup %s" %pickup_how_many)
                 for i in range(pickup_how_many):
-                    pickup(deck, player_hand)
+                    pickup(deck, player_hand, discard_pile)
             elif play_order[1] == "computer_1":
                 print("Computer 1 picks up %s" %pickup_how_many)
                 for i in range(pickup_how_many):
-                    pickup(deck, computer1_hand)
+                    pickup(deck, computer1_hand, discard_pile)
             else:
                 print("Computer 2 picks up %s" %pickup_how_many)
                 for i in range(pickup_how_many):
-                    pickup(deck, computer2_hand)
+                    pickup(deck, computer2_hand, discard_pile)
 
 
         if discard_pile[0]["face"] == "skip":

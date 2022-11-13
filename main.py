@@ -153,7 +153,7 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter, round):
         if action == 0:
             pickup(deck, player_hand, discard_pile)
             print("You pickup a new card")
-            player_turn(deck, discard_pile, player_hand, 1)
+            player_turn(deck, discard_pile, player_hand, 1, round)
             x = False
         elif action == 1:
             player_card = int(input("Which card would you like to play? "))  # multiple cards not supported
@@ -194,7 +194,7 @@ def computer_turn(deck, discard_pile, computer_hand, which_computer, round):
         
         
         discard_pile.insert(0, valid_cards[0])
-        discard_pile[0]["round_played"] = 0
+        discard_pile[0]["round_played"] = round
 
         #if computer plays a wild card, the computer selects the most common color left in its hand
         if discard_pile[0]["color"] == "wild":
@@ -240,7 +240,7 @@ def play_uno():
     computer1_hand = []
     computer2_hand = []
 
-    #round variable keeps track of which round it is, for use with skip/switch cards
+    #round variable keeps track of which round it is, for use with action cards
     round = 0
 
     deal(deck,player_hand,computer1_hand, computer2_hand)
@@ -270,11 +270,11 @@ def play_uno():
                     print("computer 2 wins!")
                     break
 
-        round += 1
+        
 
         new_order = {0: "", 1: "", 2: ""}
 
-        if discard_pile[0]["action_1"] == "pickup":
+        if discard_pile[0]["action_1"] == "pickup" and discard_pile[0]["round_played"] == round:
             pickup_how_many = int(discard_pile[0]["face"])
             if play_order[1] == "player":
                 print(play_order[0] + " makes you pickup %s" %pickup_how_many)
@@ -289,7 +289,8 @@ def play_uno():
                 for i in range(pickup_how_many):
                     pickup(deck, computer2_hand, discard_pile)
 
-
+        print("round: ", round)
+        print(discard_pile[0]["round_played"])
         if discard_pile[0]["face"] == "skip" and discard_pile[0]["round_played"] == round:
             new_order[0] = play_order[2]
             new_order[1] = play_order[0]
@@ -305,6 +306,8 @@ def play_uno():
             new_order[1] = play_order[2]
             new_order[2] = play_order[0]
             play_order = new_order
+
+        round += 1
     #for i in range (len(player_hand)):
     #    print(i, " ", player_hand[i])
 # Press the green button in the gutter to run the script.

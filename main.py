@@ -45,8 +45,14 @@ def computer_valid_card(hand, top_card):
                 continue
         return valid_cards
 
-def computer_ranked_cards(hand):
+def computer_ranked_cards(hand, next_player, uno_condition):
     
+    #strongly prefer defensive cards if next player has shouted uno
+    if uno_condition[next_player] == True:
+        for i in range (len(hand)):
+            if hand[i]["action_1"] == "pickup" or hand[i]["face"] == "skip" or hand[i]["face"] == "switch":
+                hand[i]["rank"] += 108 #only 108 cards in the deck, so this ensures top rank regardless of other factors
+
     #tend to play most common color cards
     top_color = {"blue":0,"green":0,"yellow":0,"red":0, "wild":0}
     for i in range (len(hand)):
@@ -112,7 +118,7 @@ class color:
    UNDERLINE = '\033[4m'
    END = '\033[0m'
 
-def player_turn(deck, discard_pile, player_hand, pickup_counter, round):
+def player_turn(deck, discard_pile, player_hand, pickup_counter, round, uno_condition):
     if discard_pile[0]["color"] == 'red':
         print("The top card is", color.RED + print_cards(discard_pile[0])+ color.END)
     elif discard_pile[0]["color"] == 'green':
@@ -153,14 +159,14 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter, round):
         if action == 0:
             pickup(deck, player_hand, discard_pile)
             print("You pickup a new card")
-            player_turn(deck, discard_pile, player_hand, 1, round)
+            player_turn(deck, discard_pile, player_hand, 1, round, uno_condition)
             x = False
         elif action == 1:
             player_card = int(input("Which card would you like to play? "))  # multiple cards not supported
 
             if player_is_valid_card(discard_pile[0], player_hand[player_card]):
                 discard_pile.insert(0, player_hand[player_card])
-                discard_pile[0]["round_played"] = round
+                discard_pile[0]["played_round"] = round
                 if discard_pile[0]["color"] == "wild":
                     discard_pile[0]["color"] = input("Please choose color ").lower()
                 player_hand.pop(player_card)
@@ -171,16 +177,23 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter, round):
             x = False
         else:
             print("Invalid selection")
+    if len(player_hand) == 1:
+        uno_condition["player"] = True
+        print("You shout Uno!")
+    else:
+        uno_condition["player"] = False
 
-def computer_turn(deck, discard_pile, computer_hand, which_computer, round):
+def computer_turn(deck, discard_pile, computer_hand, which_computer, pickup_counter, round, next_player, uno_condition):
     valid_cards = []
     valid_cards = computer_valid_card(computer_hand, discard_pile[0])
-    valid_cards = computer_ranked_cards(valid_cards)
+    valid_cards = computer_ranked_cards(valid_cards, next_player, uno_condition)
 
-    if len(valid_cards) == 0:
+    if len(valid_cards) == 0 and pickup_counter == 0:
         pickup(deck, computer_hand, discard_pile)
         print("Computer %s picks up" %which_computer)
-    else:
+        pickup_counter = 1
+        computer_turn(deck, discard_pile, computer_hand, which_computer, pickup_counter, round, next_player, uno_condition)
+    elif len(valid_cards) > 0:
         if valid_cards[0]["color"] == 'red':
             print("Computer %s plays" %which_computer, color.RED + print_cards(valid_cards[0]) + color.END)
         elif valid_cards[0]["color"] == 'green':
@@ -191,10 +204,9 @@ def computer_turn(deck, discard_pile, computer_hand, which_computer, round):
             print("Computer %s plays" %which_computer, color.BLUE + print_cards(valid_cards[0]) + color.END)
         else:
             print("Computer %s plays" %which_computer, print_cards(valid_cards[0]))
-        
-        
+
         discard_pile.insert(0, valid_cards[0])
-        discard_pile[0]["round_played"] = round
+        discard_pile[0]["played_round"] = round
 
         #if computer plays a wild card, the computer selects the most common color left in its hand
         if discard_pile[0]["color"] == "wild":
@@ -203,17 +215,36 @@ def computer_turn(deck, discard_pile, computer_hand, which_computer, round):
                 return
             for i in range (len(computer_hand)):
                 top_color[computer_hand[i]["color"]] += 1
+            
             #sort by values
             sorted_tuples = sorted(top_color.items(),key=lambda x:x[1], reverse=True)
             sorted_colors = {k: v for k, v in sorted_tuples}
+            
             #pick the most common color in the hand
             selected_color = list(sorted_colors.keys())[0]
+
+            #if the computer selects Wild because it has more than one wild card, select different color at random
+            if selected_color == "wild" and len(computer_hand) > 1:
+                color_list = ["blue", "green", "yellow", "red"]
+                selected_color = random.choice(color_list)
+
             discard_pile[0]["color"] = selected_color
             print("Computer %s selects %s" %(which_computer, selected_color))
         x = computer_hand.index(valid_cards[0])
         computer_hand.pop(x)
+    
     if len(computer_hand) == 1:
+        if which_computer == 1:
+            uno_condition["computer_1"] = True
+        else:
+            uno_condition["computer_2"] = True
         print("Computer %s shouts Uno!" %which_computer)
+    else:
+        if which_computer == 1:
+            uno_condition["computer_1"] = False
+        else:
+            uno_condition["computer_2"] = False
+
 def play_uno():
     print('Let\'s play Uno!')  # Press Ctrl+F8 to toggle the breakpoint.
 
@@ -250,31 +281,30 @@ def play_uno():
     winner = True
 
     play_order = {0: "player", 1: "computer_1", 2: "computer_2"}
-
+    uno_condition = {"player": False, "computer_1": False, "computer_2": False}
 
     while winner:
+        next_player = play_order[1]
         if(play_order[0]) == "player":
             player_hand = sorted(player_hand, key=lambda a: a["ref_num"])
-            player_turn(deck, discard_pile, player_hand, 0, round)
+            player_turn(deck, discard_pile, player_hand, 0, round, uno_condition)
             if len(player_hand) == 0:
                     print("player wins!")
                     break
         elif(play_order[0]) == "computer_1":
-            computer_turn(deck, discard_pile, computer1_hand, 1, round)
+            computer_turn(deck, discard_pile, computer1_hand, 1, 0, round, next_player, uno_condition)
             if len(computer1_hand) == 0:
                     print("computer 1 wins!")
                     break
         elif(play_order[0]) == "computer_2":
-            computer_turn(deck, discard_pile, computer2_hand, 2, round)
+            computer_turn(deck, discard_pile, computer2_hand, 2, 0, round, next_player, uno_condition)
             if len(computer2_hand) == 0:
                     print("computer 2 wins!")
                     break
 
-        
-
         new_order = {0: "", 1: "", 2: ""}
 
-        if discard_pile[0]["action_1"] == "pickup" and discard_pile[0]["round_played"] == round:
+        if discard_pile[0]["action_1"] == "pickup" and discard_pile[0]["played_round"] == round:
             pickup_how_many = int(discard_pile[0]["face"])
             if play_order[1] == "player":
                 print(play_order[0] + " makes you pickup %s" %pickup_how_many)
@@ -289,14 +319,12 @@ def play_uno():
                 for i in range(pickup_how_many):
                     pickup(deck, computer2_hand, discard_pile)
 
-        print("round: ", round)
-        print(discard_pile[0]["round_played"])
-        if discard_pile[0]["face"] == "skip" and discard_pile[0]["round_played"] == round:
+        if discard_pile[0]["face"] == "skip" and discard_pile[0]["played_round"] == round:
             new_order[0] = play_order[2]
             new_order[1] = play_order[0]
             new_order[2] = play_order[1]
             play_order = new_order
-        elif discard_pile[0]["face"] == "switch" and discard_pile[0]["round_played"] == round:
+        elif discard_pile[0]["face"] == "switch" and discard_pile[0]["played_round"] == round:
             new_order[0] = play_order[2]
             new_order[1] = play_order[1]
             new_order[2] = play_order[0]
@@ -308,9 +336,7 @@ def play_uno():
             play_order = new_order
 
         round += 1
-    #for i in range (len(player_hand)):
-    #    print(i, " ", player_hand[i])
-# Press the green button in the gutter to run the script.
+
 if __name__ == '__main__':
     play_uno()
 

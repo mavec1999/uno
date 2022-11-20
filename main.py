@@ -26,7 +26,7 @@ def player_is_valid_card(top_card, hand):
     elif top_card["face"] == hand["face"]:
         return True
     return False
-1
+
 def computer_valid_card(hand, top_card):
     valid_cards = []
     if top_card["color"] == "wild":
@@ -89,6 +89,13 @@ def computer_ranked_cards(hand, next_player, previous_player, uno_condition):
         if hand[i]["face"] == 0:
             hand[i]["rank"] += 1
 
+    #tend to prefer playing multi-cards
+    for i in range (len(hand)-1):
+        for j in range (i, len(hand)-1):
+            if hand[i]["ref_num"] == hand[j]["twin"]:
+                hand[i]["rank"] +=1
+                hand[j]["rank"] +=1
+
     hand = sorted(hand, key=lambda a: a["rank"], reverse=True)
     return hand
     
@@ -117,6 +124,24 @@ def print_cards(card):
         clean_card = clean_card + " " + card["action_1"]
     
     return clean_card.title()
+
+def selection_validator(cards_to_play, player_hand):
+    if 0 >= len(cards_to_play) > 2:
+        print("You must select at least 1 card but not more than 2 to play")
+        return False
+    elif len(cards_to_play) == 2:
+        if 0 >= cards_to_play[0] >= len(player_hand) or 0 >= cards_to_play[1] >= len(player_hand):
+            print("The selection you have made is out of range")
+            return False
+        elif player_hand[cards_to_play[0]]["twin"] != player_hand[cards_to_play[1]]["ref_num"]:
+            print("Only cards matched by color AND number may be multiplayed")
+            return False
+    else:
+        if 0 >= cards_to_play[0] >= len(player_hand):
+            print("The selection you have made is out of range")
+            return False
+
+    return True
 
 class color:
    PURPLE = '\033[95m'
@@ -174,14 +199,33 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter, round, uno_cond
             player_turn(deck, discard_pile, player_hand, 1, round, uno_condition)
             x = False
         elif action == 1:
-            player_card = int(input("Which card would you like to play? "))  # multiple cards not supported
-            if 0 <= player_card <= len(player_hand):
-                if player_is_valid_card(discard_pile[0], player_hand[player_card]):
-                    discard_pile.insert(0, player_hand[player_card])
-                    discard_pile[0]["played_round"] = round
+            #multi-card now supported
+            cards_to_play = []
+            cards_to_play = [int(item) for item in input("Which card(s) would you like to play? ").split()]
+            
+            if selection_validator(cards_to_play, player_hand):
+                if player_is_valid_card(discard_pile[0], player_hand[cards_to_play[0]]):
+                    
+                    if len(cards_to_play) == 1:
+                        discard_pile.insert(0, player_hand[cards_to_play[0]])
+                        discard_pile[0]["played_round"] = round
+                        player_hand.pop(cards_to_play[0])
+                    else:
+                        discard_pile.insert(0, player_hand[cards_to_play[0]])
+                        discard_pile[0]["played_round"] = round
+                        discard_pile.insert(0, player_hand[cards_to_play[1]])
+                        discard_pile[1]["played_round"] = round
+                        
+                        #pop the latter card first so as to not mess up the indexing
+                        if cards_to_play[0] > cards_to_play [1]:
+                            player_hand.pop(cards_to_play[0])
+                            player_hand.pop(cards_to_play[1])
+                        else:
+                            player_hand.pop(cards_to_play[1])
+                            player_hand.pop(cards_to_play[0])
+
                     if discard_pile[0]["color"] == "wild":
                         discard_pile[0]["color"] = input("Please choose color ").lower()
-                    player_hand.pop(player_card)
                     
                     if discard_pile[0]["color"] == 'red':
                         print("You play", color.RED + print_cards(discard_pile[0]) + color.END)
@@ -193,6 +237,7 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter, round, uno_cond
                         print("You play", color.BLUE + print_cards(discard_pile[0]) + color.END)
 
                     x = False
+
                 else:
                     print("Cannot play that card")
             else:
@@ -218,21 +263,50 @@ def computer_turn(deck, discard_pile, computer_hand, which_computer, pickup_coun
         pickup_counter = 1
         computer_turn(deck, discard_pile, computer_hand, which_computer, pickup_counter, round, next_player, uno_condition, previous_player)
     elif len(valid_cards) > 0:
-        if valid_cards[0]["color"] == 'red':
-            print("Computer %s plays" %which_computer, color.RED + print_cards(valid_cards[0]) + color.END)
-        elif valid_cards[0]["color"] == 'green':
-            print("Computer %s plays" %which_computer, color.GREEN + print_cards(valid_cards[0]) + color.END)
-        elif valid_cards[0]["color"] == 'yellow':
-            print("Computer %s plays" %which_computer, color.YELLOW + print_cards(valid_cards[0]) + color.END)
-        elif valid_cards[0]["color"] == 'blue':
-            print("Computer %s plays" %which_computer, color.BLUE + print_cards(valid_cards[0]) + color.END)
-        else:
-            print("Computer %s plays" %which_computer, print_cards(valid_cards[0]))
+        if len(valid_cards) > 1 and valid_cards[0]["twin"] == valid_cards[1]["ref_num"]:
+            print("Computer %s makes a" %which_computer, color.BOLD + "multi-play!" + color.END)
 
-        discard_pile.insert(0, valid_cards[0])
-        discard_pile[0]["played_round"] = round
-        x = computer_hand.index(valid_cards[0])
-        computer_hand.pop(x)
+            if valid_cards[0]["color"] == 'red':
+                print("Computer %s plays two" %which_computer, color.RED + print_cards(valid_cards[0])+"s" + color.END)
+            elif valid_cards[0]["color"] == 'green':
+                print("Computer %s plays two" %which_computer, color.GREEN + print_cards(valid_cards[0])+"s" + color.END)
+            elif valid_cards[0]["color"] == 'yellow':
+                print("Computer %s plays two" %which_computer, color.YELLOW + print_cards(valid_cards[0])+"s" + color.END)
+            elif valid_cards[0]["color"] == 'blue':
+                print("Computer %s plays two" %which_computer, color.BLUE + print_cards(valid_cards[0])+"s" + color.END)
+            else:
+                print("Computer %s plays two" %which_computer, print_cards(valid_cards[0])+"s")
+
+            discard_pile.insert(0, valid_cards[0])
+            discard_pile[0]["played_round"] = round
+            discard_pile.insert(0, valid_cards[1])
+            discard_pile[0]["played_round"] = round
+            x = computer_hand.index(valid_cards[0])
+            y = computer_hand.index(valid_cards[1])
+            
+            #pops the latter card to avoid messing up the indexing
+            if x > y:
+                computer_hand.pop(x)
+                computer_hand.pop(y)
+            else:
+                computer_hand.pop(y)
+                computer_hand.pop(x)
+        else:
+            if valid_cards[0]["color"] == 'red':
+                print("Computer %s plays" %which_computer, color.RED + print_cards(valid_cards[0]) + color.END)
+            elif valid_cards[0]["color"] == 'green':
+                print("Computer %s plays" %which_computer, color.GREEN + print_cards(valid_cards[0]) + color.END)
+            elif valid_cards[0]["color"] == 'yellow':
+                print("Computer %s plays" %which_computer, color.YELLOW + print_cards(valid_cards[0]) + color.END)
+            elif valid_cards[0]["color"] == 'blue':
+                print("Computer %s plays" %which_computer, color.BLUE + print_cards(valid_cards[0]) + color.END)
+            else:
+                print("Computer %s plays" %which_computer, print_cards(valid_cards[0]))
+
+            discard_pile.insert(0, valid_cards[0])
+            discard_pile[0]["played_round"] = round
+            x = computer_hand.index(valid_cards[0])
+            computer_hand.pop(x)
 
         #if computer plays a wild card, the computer selects the most common color left in its hand
         if discard_pile[0]["color"] == "wild":

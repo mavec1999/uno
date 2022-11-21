@@ -126,6 +126,7 @@ def print_cards(card):
     return clean_card.title()
 
 def selection_validator(cards_to_play, player_hand):
+    print("cards_to_play length: ", len(cards_to_play))
     if 0 >= len(cards_to_play) > 2:
         print("You must select at least 1 card but not more than 2 to play")
         return False
@@ -137,7 +138,9 @@ def selection_validator(cards_to_play, player_hand):
             print("Only cards matched by color AND number may be multiplayed")
             return False
     else:
-        if 0 >= cards_to_play[0] >= len(player_hand):
+        try:
+            0 >= cards_to_play[0] >= len(player_hand)
+        except:
             print("The selection you have made is out of range")
             return False
 
@@ -192,60 +195,78 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter, round, uno_cond
         else:
             print("1", "Play")
             print("2", "End turn")
-        action = int(input("What would you like to do? "))
-        if action == 0:
-            pickup(deck, player_hand, discard_pile)
-            print("You pickup a new card")
-            player_turn(deck, discard_pile, player_hand, 1, round, uno_condition)
-            x = False
-        elif action == 1:
-            #multi-card now supported
-            cards_to_play = []
-            cards_to_play = [int(item) for item in input("Which card(s) would you like to play? ").split()]
-            
-            if selection_validator(cards_to_play, player_hand):
-                if player_is_valid_card(discard_pile[0], player_hand[cards_to_play[0]]):
-                    
-                    if len(cards_to_play) == 1:
-                        discard_pile.insert(0, player_hand[cards_to_play[0]])
-                        discard_pile[0]["played_round"] = round
-                        player_hand.pop(cards_to_play[0])
-                    else:
-                        discard_pile.insert(0, player_hand[cards_to_play[0]])
-                        discard_pile[0]["played_round"] = round
-                        discard_pile.insert(0, player_hand[cards_to_play[1]])
-                        discard_pile[1]["played_round"] = round
-                        
-                        #pop the latter card first so as to not mess up the indexing
-                        if cards_to_play[0] > cards_to_play [1]:
-                            player_hand.pop(cards_to_play[0])
-                            player_hand.pop(cards_to_play[1])
-                        else:
-                            player_hand.pop(cards_to_play[1])
-                            player_hand.pop(cards_to_play[0])
-
-                    if discard_pile[0]["color"] == "wild":
-                        discard_pile[0]["color"] = input("Please choose color ").lower()
-                    
-                    if discard_pile[0]["color"] == 'red':
-                        print("You play", color.RED + print_cards(discard_pile[0]) + color.END)
-                    elif discard_pile[0]["color"] == 'green':
-                        print("You play", color.GREEN + print_cards(discard_pile[0]) + color.END)
-                    elif discard_pile[0]["color"] == 'yellow':
-                        print("You play", color.YELLOW + print_cards(discard_pile[0]) + color.END)
-                    elif discard_pile[0]["color"] == 'blue':
-                        print("You play", color.BLUE + print_cards(discard_pile[0]) + color.END)
-
-                    x = False
-
-                else:
-                    print("Cannot play that card")
-            else:
-                print("Invalid selection")
-        elif action == 2 and pickup_counter > 0:
-            x = False
-        else:
+        
+        try:
+            action = int(input("What would you like to do? "))
+        except ValueError:
             print("Invalid selection")
+        else:
+            if action == 0:
+                pickup(deck, player_hand, discard_pile)
+                print("You pickup a new card")
+                player_turn(deck, discard_pile, player_hand, 1, round, uno_condition)
+                x = False
+            elif action == 1:
+                #multi-card now supported
+                cards_to_play = []
+                
+                try:
+                    cards_to_play = [int(item) for item in input("Which card(s) would you like to play? ").split()]
+                except:
+                    print("""Invalid selection.\nPlease select a card number from those listed above.\nFor multi-play, please enter up to two card numbers separated by a space""")
+                else:
+                    if selection_validator(cards_to_play, player_hand):
+                        if player_is_valid_card(discard_pile[0], player_hand[cards_to_play[0]]):
+                            
+                            if len(cards_to_play) == 1:
+                                discard_pile.insert(0, player_hand[cards_to_play[0]])
+                                discard_pile[0]["played_round"] = round
+                                player_hand.pop(cards_to_play[0])
+                            else:
+                                discard_pile.insert(0, player_hand[cards_to_play[0]])
+                                discard_pile[0]["played_round"] = round
+                                discard_pile.insert(0, player_hand[cards_to_play[1]])
+                                discard_pile[1]["played_round"] = round
+                                
+                                #pop the latter card first so as to not mess up the indexing
+                                if cards_to_play[0] > cards_to_play [1]:
+                                    player_hand.pop(cards_to_play[0])
+                                    player_hand.pop(cards_to_play[1])
+                                else:
+                                    player_hand.pop(cards_to_play[1])
+                                    player_hand.pop(cards_to_play[0])
+
+                            if discard_pile[0]["color"] == "wild":
+                                valid_colors = ["blue", "green", "yellow", "red"]
+                                
+                                try:
+                                    new_color = input("Please choose color ").lower()
+                                    if new_color not in valid_colors:
+                                        raise ValueError("You must type-in red, green, yellow, or blue only")
+                                except ValueError:
+                                    print("You must type-in red, green, yellow, or blue only")
+                                else:
+                                    discard_pile[0]["color"] = new_color
+                                
+                                    if discard_pile[0]["color"] == 'red':
+                                        print("You play", color.RED + print_cards(discard_pile[0]) + color.END)
+                                    elif discard_pile[0]["color"] == 'green':
+                                        print("You play", color.GREEN + print_cards(discard_pile[0]) + color.END)
+                                    elif discard_pile[0]["color"] == 'yellow':
+                                        print("You play", color.YELLOW + print_cards(discard_pile[0]) + color.END)
+                                    elif discard_pile[0]["color"] == 'blue':
+                                        print("You play", color.BLUE + print_cards(discard_pile[0]) + color.END)
+                                
+                                    x = False
+                        
+                        else:
+                            print("Cannot play that card")
+                    else:
+                        print("""Invalid selection.\nPlease select a card number from those listed above.\nFor multi-play, please enter up to two card numbers separated by a space""")
+            elif action == 2 and pickup_counter > 0:
+                x = False
+            else:
+                print("""Invalid selection.\nPlease select a card number from those listed above.\nFor multi-play, please enter up to two card numbers separated by a space""")
     if len(player_hand) == 1:
         uno_condition["player"] = True
         print("You shout Uno!")
@@ -331,8 +352,6 @@ def computer_turn(deck, discard_pile, computer_hand, which_computer, pickup_coun
             discard_pile[0]["color"] = selected_color
             print("Computer %s selects %s" %(which_computer, selected_color))
         
-        
-    
     if len(computer_hand) == 1:
         if which_computer == 1:
             uno_condition["computer_1"] = True
@@ -346,7 +365,7 @@ def computer_turn(deck, discard_pile, computer_hand, which_computer, pickup_coun
             uno_condition["computer_2"] = False
 
 def play_uno():
-    print('Let\'s play Uno!')  # Press Ctrl+F8 to toggle the breakpoint.
+    print('Let\'s play Uno!')
 
     workbook = xlrd.open_workbook('deck.xls')
     workbook = xlrd.open_workbook('deck.xls', on_demand = True)

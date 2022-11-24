@@ -126,7 +126,6 @@ def print_cards(card):
     return clean_card.title()
 
 def selection_validator(cards_to_play, player_hand):
-    print("cards_to_play length: ", len(cards_to_play))
     if 0 >= len(cards_to_play) > 2:
         print("You must select at least 1 card but not more than 2 to play")
         return False
@@ -226,7 +225,7 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter, round, uno_cond
                                 discard_pile.insert(0, player_hand[cards_to_play[0]])
                                 discard_pile[0]["played_round"] = round
                                 discard_pile.insert(0, player_hand[cards_to_play[1]])
-                                discard_pile[1]["played_round"] = round
+                                discard_pile[0]["played_round"] = round
                                 
                                 #pop the latter card first so as to not mess up the indexing
                                 if cards_to_play[0] > cards_to_play [1]:
@@ -239,25 +238,26 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter, round, uno_cond
                             if discard_pile[0]["color"] == "wild":
                                 valid_colors = ["blue", "green", "yellow", "red"]
                                 
-                                try:
-                                    new_color = input("Please choose color ").lower()
-                                    if new_color not in valid_colors:
-                                        raise ValueError("You must type-in red, green, yellow, or blue only")
-                                except ValueError:
-                                    print("You must type-in red, green, yellow, or blue only")
-                                else:
-                                    discard_pile[0]["color"] = new_color
+                                new_color = ""
+
+                                while new_color not in valid_colors:
+                                    try:
+                                        new_color = input("Please choose color ").lower()
+                                    except ValueError:
+                                        print("You must type-in red, green, yellow, or blue only")
                                 
-                                    if discard_pile[0]["color"] == 'red':
-                                        print("You play", color.RED + print_cards(discard_pile[0]) + color.END)
-                                    elif discard_pile[0]["color"] == 'green':
-                                        print("You play", color.GREEN + print_cards(discard_pile[0]) + color.END)
-                                    elif discard_pile[0]["color"] == 'yellow':
-                                        print("You play", color.YELLOW + print_cards(discard_pile[0]) + color.END)
-                                    elif discard_pile[0]["color"] == 'blue':
-                                        print("You play", color.BLUE + print_cards(discard_pile[0]) + color.END)
+                                discard_pile[0]["color"] = new_color
+                            
+                                if discard_pile[0]["color"] == 'red':
+                                    print("You play", color.RED + print_cards(discard_pile[0]) + color.END)
+                                elif discard_pile[0]["color"] == 'green':
+                                    print("You play", color.GREEN + print_cards(discard_pile[0]) + color.END)
+                                elif discard_pile[0]["color"] == 'yellow':
+                                    print("You play", color.YELLOW + print_cards(discard_pile[0]) + color.END)
+                                elif discard_pile[0]["color"] == 'blue':
+                                    print("You play", color.BLUE + print_cards(discard_pile[0]) + color.END)
                                 
-                                    x = False
+                            x = False
                         
                         else:
                             print("Cannot play that card")
@@ -426,6 +426,7 @@ def play_uno():
 
         if discard_pile[0]["action_1"] == "pickup" and discard_pile[0]["played_round"] == round:
             pickup_how_many = int(discard_pile[0]["face"])
+            
             if play_order[1] == "player":
                 print(play_order[0] + " makes you pickup %s" %pickup_how_many)
                 for i in range(pickup_how_many):
@@ -438,6 +439,22 @@ def play_uno():
                 print("Computer 2 picks up %s" %pickup_how_many)
                 for i in range(pickup_how_many):
                     pickup(deck, computer2_hand, discard_pile)
+            
+            if len(discard_pile) > 1:
+                if discard_pile[1]["action_1"] == "pickup" and discard_pile[1]["played_round"] == round:
+                    pickup_how_many = int(discard_pile[1]["face"])
+                    if play_order[1] == "player":
+                        print(play_order[0] + " makes you pickup another %s" %pickup_how_many)
+                        for i in range(pickup_how_many):
+                            pickup(deck, player_hand, discard_pile)
+                    elif play_order[1] == "computer_1":
+                        print("Computer 1 picks up another %s" %pickup_how_many)
+                        for i in range(pickup_how_many):
+                            pickup(deck, computer1_hand, discard_pile)
+                    else:
+                        print("Computer 2 picks up another %s" %pickup_how_many)
+                        for i in range(pickup_how_many):
+                            pickup(deck, computer2_hand, discard_pile)
 
         if discard_pile[0]["face"] == "skip" and discard_pile[0]["played_round"] == round:
             new_order[0] = play_order[2]

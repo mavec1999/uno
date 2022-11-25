@@ -126,20 +126,18 @@ def print_cards(card):
     return clean_card.title()
 
 def selection_validator(cards_to_play, player_hand):
-    if 0 >= len(cards_to_play) > 2:
+    if 0 >= len(cards_to_play) or len(cards_to_play) > 2:
         print("You must select at least 1 card but not more than 2 to play")
         return False
     elif len(cards_to_play) == 2:
-        if 0 >= cards_to_play[0] >= len(player_hand) or 0 >= cards_to_play[1] >= len(player_hand):
+        if 0 > cards_to_play[0] or cards_to_play[0] >= len(player_hand) or 0 > cards_to_play[1] or cards_to_play[1] >= len(player_hand):
             print("The selection you have made is out of range")
             return False
         elif player_hand[cards_to_play[0]]["twin"] != player_hand[cards_to_play[1]]["ref_num"]:
             print("Only cards matched by color AND number may be multiplayed")
             return False
     else:
-        try:
-            0 >= cards_to_play[0] >= len(player_hand)
-        except:
+        if 0 > cards_to_play[0] or cards_to_play[0] >= len(player_hand):
             print("The selection you have made is out of range")
             return False
 
@@ -158,6 +156,8 @@ class color:
    END = '\033[0m'
 
 def player_turn(deck, discard_pile, player_hand, pickup_counter, round, uno_condition):
+    shouted_uno = False
+    
     if discard_pile[0]["color"] == 'red':
         print("The top card is", color.RED + print_cards(discard_pile[0])+ color.END)
     elif discard_pile[0]["color"] == 'green':
@@ -209,19 +209,20 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter, round, uno_cond
                 #multi-card now supported
                 cards_to_play = []
                 
+                
                 try:
                     cards_to_play = [int(item) for item in input("Which card(s) would you like to play? ").split()]
                 except:
                     print("""Invalid selection.\nPlease select a card number from those listed above.\nFor multi-play, please enter up to two card numbers separated by a space""")
                 else:
-                    if selection_validator(cards_to_play, player_hand):
-                        if player_is_valid_card(discard_pile[0], player_hand[cards_to_play[0]]):
+                    if selection_validator(cards_to_play, player_hand): #checks that only 1 or 2 cards matching cards are selected
+                        if player_is_valid_card(discard_pile[0], player_hand[cards_to_play[0]]): #checks that those cards are legal
                             
-                            if len(cards_to_play) == 1:
+                            if len(cards_to_play) == 1: #single play
                                 discard_pile.insert(0, player_hand[cards_to_play[0]])
                                 discard_pile[0]["played_round"] = round
                                 player_hand.pop(cards_to_play[0])
-                            else:
+                            else: #multiplay
                                 discard_pile.insert(0, player_hand[cards_to_play[0]])
                                 discard_pile[0]["played_round"] = round
                                 discard_pile.insert(0, player_hand[cards_to_play[1]])
@@ -257,19 +258,19 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter, round, uno_cond
                                 elif discard_pile[0]["color"] == 'blue':
                                     print("You play", color.BLUE + print_cards(discard_pile[0]) + color.END)
                                 
-                            x = False
+                            x = False #exits the while loop. allows continuation to checking the uno condition
                         
                         else:
                             print("Cannot play that card")
                     else:
-                        print("""Invalid selection.\nPlease select a card number from those listed above.\nFor multi-play, please enter up to two card numbers separated by a space""")
+                        print("""1Invalid selection.\nPlease select a card number from those listed above.\nFor multi-play, please enter up to two card numbers separated by a space""")
             elif action == 2 and pickup_counter > 0:
                 x = False
-            else:
-                print("""Invalid selection.\nPlease select a card number from those listed above.\nFor multi-play, please enter up to two card numbers separated by a space""")
-    if len(player_hand) == 1:
+    if len(player_hand) == 1 and uno_condition["player"] == False:
         uno_condition["player"] = True
         print("You shout Uno!")
+    elif len(player_hand) == 1 and uno_condition["player"] == False:
+        uno_condition["player"] = True
     else:
         uno_condition["player"] = False
 
@@ -277,6 +278,7 @@ def computer_turn(deck, discard_pile, computer_hand, which_computer, pickup_coun
     valid_cards = []
     valid_cards = computer_valid_card(computer_hand, discard_pile[0])
     valid_cards = computer_ranked_cards(valid_cards, next_player, previous_player, uno_condition)
+    shouted_uno = False
 
     if len(valid_cards) == 0 and pickup_counter == 0:
         pickup(deck, computer_hand, discard_pile)
@@ -353,11 +355,16 @@ def computer_turn(deck, discard_pile, computer_hand, which_computer, pickup_coun
             print("Computer %s selects %s" %(which_computer, selected_color))
         
     if len(computer_hand) == 1:
-        if which_computer == 1:
+        if which_computer == 1 and uno_condition["computer_1"] == False:
             uno_condition["computer_1"] = True
-        else:
+            print("Computer %s shouts Uno!" %which_computer)
+        elif which_computer == 2 and uno_condition["computer_2"] == False:
             uno_condition["computer_2"] = True
-        print("Computer %s shouts Uno!" %which_computer)
+            print("Computer %s shouts Uno!" %which_computer)
+        elif which_computer == 1 and uno_condition["computer_1"] == True:
+            uno_condition["computer_1"] = True
+        elif which_computer == 2 and uno_condition["computer_2"] == True:
+            uno_condition["computer_2"] = True
     else:
         if which_computer == 1:
             uno_condition["computer_1"] = False
@@ -390,7 +397,8 @@ def play_uno():
     computer1_hand = []
     computer2_hand = []
 
-    #round variable keeps track of which round it is, for use with action cards
+    #round variable keeps track of which round each card is played. 
+    #it's used to confirm that actions only get applied once, and only in the next round
     round = 0
 
     deal(deck,player_hand,computer1_hand, computer2_hand)
@@ -424,7 +432,9 @@ def play_uno():
 
         new_order = {0: "", 1: "", 2: ""}
 
+        #makes the next player in the play order pickup, except if the round variable says not to
         if discard_pile[0]["action_1"] == "pickup" and discard_pile[0]["played_round"] == round:
+            
             pickup_how_many = int(discard_pile[0]["face"])
             
             if play_order[1] == "player":
@@ -440,6 +450,9 @@ def play_uno():
                 for i in range(pickup_how_many):
                     pickup(deck, computer2_hand, discard_pile)
             
+            #this essentially checks if there was a multi-play of pickup cards. if there was,
+            #both discard_pile[0] and discard_pile[1] will have the same value for "round_played"
+            #which will also match the current value for 'round'
             if len(discard_pile) > 1:
                 if discard_pile[1]["action_1"] == "pickup" and discard_pile[1]["played_round"] == round:
                     pickup_how_many = int(discard_pile[1]["face"])
@@ -456,12 +469,16 @@ def play_uno():
                         for i in range(pickup_how_many):
                             pickup(deck, computer2_hand, discard_pile)
 
+        #sets the play order. for skip/switch cards, will first confirm the round they were played.
+        #since all cards are initialized to have a '-1' value for round, and the round variable 
+        #itself is initialized to '0', skip/switch cannot affect play if they are the first
+        #top card in the discard pile when play begins 
         if discard_pile[0]["face"] == "skip" and discard_pile[0]["played_round"] == round:
             new_order[0] = play_order[2]
             new_order[1] = play_order[0]
             new_order[2] = play_order[1]
             play_order = new_order
-        elif discard_pile[0]["face"] == "switch" and discard_pile[0]["played_round"] == round:
+        elif discard_pile[0]["face"] == "switch" and discard_pile[0]["played_round"] == round: 
             new_order[0] = play_order[2]
             new_order[1] = play_order[1]
             new_order[2] = play_order[0]

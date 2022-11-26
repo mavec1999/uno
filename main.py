@@ -59,11 +59,11 @@ def computer_ranked_cards(hand, next_player, previous_player, uno_condition):
     if uno_condition[next_player] == True and uno_condition[previous_player] != True:
         for i in range (len(hand)):
             if hand[i]["action_1"] == "pickup" or hand[i]["face"] == "skip" or hand[i]["face"] == "switch":
-                hand[i]["rank"] += 110 #only 110 cards in the deck, so this ensures top rank regardless of other factors
+                hand[i]["rank"] += 108 #only 108 cards in the deck, so this ensures top rank regardless of other factors
     elif uno_condition[previous_player] == True:
         for i in range(len(hand)):
             if hand[i]["face"] == "skip" or hand[i]["face"] == "switch":
-                hand[i]["rank"] -= 110 #do not switch or skip back to the player that just shouted Uno!
+                hand[i]["rank"] -= 108 #do not switch or skip back to the player that just shouted Uno!
 
     #tend to play most common color cards
     top_color = {"blue":0,"green":0,"yellow":0,"red":0, "wild":0}
@@ -156,7 +156,6 @@ class color:
    END = '\033[0m'
 
 def player_turn(deck, discard_pile, player_hand, pickup_counter, round, uno_condition):
-    shouted_uno = False
     
     if discard_pile[0]["color"] == 'red':
         print("The top card is", color.RED + print_cards(discard_pile[0])+ color.END)
@@ -171,19 +170,19 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter, round, uno_cond
     
     print()
     print("Your hand")
-    print(color.UNDERLINE+ "#      Card" + color.END)
+    print(color.UNDERLINE+ "#        Card" + color.END)
 
     for i in range (len(player_hand)):
         if player_hand[i]["color"] == 'red':
-            print(i, "    ", color.RED + print_cards(player_hand[i]) + color.END)
+            print(i, '\t', color.RED + print_cards(player_hand[i]) + color.END)
         elif player_hand[i]["color"] == 'green':
-             print(i, "    ", color.GREEN + print_cards(player_hand[i]) + color.END)
+             print(i, '\t', color.GREEN + print_cards(player_hand[i]) + color.END)
         elif player_hand[i]["color"] == 'yellow':
-             print(i, "    ", color.YELLOW + print_cards(player_hand[i]) + color.END)
+             print(i, '\t', color.YELLOW + print_cards(player_hand[i]) + color.END)
         elif player_hand[i]["color"] == 'blue':
-             print(i, "    ", color.BLUE + print_cards(player_hand[i]) + color.END)
+             print(i, '\t', color.BLUE + print_cards(player_hand[i]) + color.END)
         else:
-            print(i, "    ", print_cards(player_hand[i]))
+            print(i, '\t', print_cards(player_hand[i]))
     x = True
     while x is True:
         print()
@@ -208,7 +207,6 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter, round, uno_cond
             elif action == 1:
                 #multi-card now supported
                 cards_to_play = []
-                
                 
                 try:
                     cards_to_play = [int(item) for item in input("Which card(s) would you like to play? ").split()]
@@ -249,23 +247,24 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter, round, uno_cond
                                 
                                 discard_pile[0]["color"] = new_color
                             
-                                if discard_pile[0]["color"] == 'red':
-                                    print("You play", color.RED + print_cards(discard_pile[0]) + color.END)
-                                elif discard_pile[0]["color"] == 'green':
-                                    print("You play", color.GREEN + print_cards(discard_pile[0]) + color.END)
-                                elif discard_pile[0]["color"] == 'yellow':
-                                    print("You play", color.YELLOW + print_cards(discard_pile[0]) + color.END)
-                                elif discard_pile[0]["color"] == 'blue':
-                                    print("You play", color.BLUE + print_cards(discard_pile[0]) + color.END)
+                            if discard_pile[0]["color"] == 'red':
+                                print("You play", color.RED + print_cards(discard_pile[0]) + color.END)
+                            elif discard_pile[0]["color"] == 'green':
+                                print("You play", color.GREEN + print_cards(discard_pile[0]) + color.END)
+                            elif discard_pile[0]["color"] == 'yellow':
+                                print("You play", color.YELLOW + print_cards(discard_pile[0]) + color.END)
+                            elif discard_pile[0]["color"] == 'blue':
+                                print("You play", color.BLUE + print_cards(discard_pile[0]) + color.END)
                                 
                             x = False #exits the while loop. allows continuation to checking the uno condition
                         
                         else:
                             print("Cannot play that card")
                     else:
-                        print("""1Invalid selection.\nPlease select a card number from those listed above.\nFor multi-play, please enter up to two card numbers separated by a space""")
+                        print("""Invalid selection.\nPlease select a card number from those listed above.\nFor multi-play, please enter up to two card numbers separated by a space""")
             elif action == 2 and pickup_counter > 0:
                 x = False
+    
     if len(player_hand) == 1 and uno_condition["player"] == False:
         uno_condition["player"] = True
         print("You shout Uno!")
@@ -276,9 +275,8 @@ def player_turn(deck, discard_pile, player_hand, pickup_counter, round, uno_cond
 
 def computer_turn(deck, discard_pile, computer_hand, which_computer, pickup_counter, round, next_player, uno_condition, previous_player):
     valid_cards = []
-    valid_cards = computer_valid_card(computer_hand, discard_pile[0])
-    valid_cards = computer_ranked_cards(valid_cards, next_player, previous_player, uno_condition)
-    shouted_uno = False
+    valid_cards = computer_valid_card(computer_hand, discard_pile[0]) #identifies whic cards are valid
+    valid_cards = computer_ranked_cards(valid_cards, next_player, previous_player, uno_condition) #ranks the valid cards, if any
 
     if len(valid_cards) == 0 and pickup_counter == 0:
         pickup(deck, computer_hand, discard_pile)
@@ -355,6 +353,7 @@ def computer_turn(deck, discard_pile, computer_hand, which_computer, pickup_coun
             print("Computer %s selects %s" %(which_computer, selected_color))
         
     if len(computer_hand) == 1:
+        #this check prevents the computer from shouting Uno twice when playing after pickup
         if which_computer == 1 and uno_condition["computer_1"] == False:
             uno_condition["computer_1"] = True
             print("Computer %s shouts Uno!" %which_computer)
